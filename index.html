@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta -->
+    <title>Timer Pro</title>
+    <meta name="description" content="A precision stopwatch and countdown timer with lap capture, screenshot recording, and custom start times.">
+    <meta name="author" content="Timer Pro">
+    <meta name="theme-color" content="#09090b">
+
+    <!-- Open Graph / Social Preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Timer Pro">
+    <meta property="og:description" content="Precision stopwatch and countdown timer with lap screenshots.">
+    <meta property="og:image" content="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='630' viewBox='0 0 1200 630'%3E%3Crect width='1200' height='630' fill='%2309090b'/%3E%3Ccircle cx='600' cy='280' r='160' stroke='%2310b981' stroke-width='12' fill='none'/%3E%3Cpath fill='%2310b981' d='M594 140h12v60h-12zm0 220h12v60h-12zm-80-80h-60v-12h60zm220 0h60v12h-60zM600 260l60 60-8 8-60-60z'/%3E%3Ctext x='600' y='510' font-family='monospace' font-size='48' fill='%2310b981' text-anchor='middle'%3ETimer Pro%3C/text%3E%3C/svg%3E">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Timer Pro">
+    <meta name="twitter:description" content="Precision stopwatch and countdown timer with lap screenshots.">
+    <meta name="twitter:image" content="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='630' viewBox='0 0 1200 630'%3E%3Crect width='1200' height='630' fill='%2309090b'/%3E%3Ccircle cx='600' cy='280' r='160' stroke='%2310b981' stroke-width='12' fill='none'/%3E%3Cpath fill='%2310b981' d='M594 140h12v60h-12zm0 220h12v60h-12zm-80-80h-60v-12h60zm220 0h60v12h-60zM600 260l60 60-8 8-60-60z'/%3E%3Ctext x='600' y='510' font-family='monospace' font-size='48' fill='%2310b981' text-anchor='middle'%3ETimer Pro%3C/text%3E%3C/svg%3E">
+
+    <!-- Favicon (your SVG) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1em' height='1em' viewBox='0 0 24 24'%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3Cpath fill='%2310b981' d='M12 20a7 7 0 0 1-7-7a7 7 0 0 1 7-7a7 7 0 0 1 7 7a7 7 0 0 1-7 7m7.03-12.61l1.42-1.42c-.45-.51-.9-.97-1.41-1.41L17.62 6c-1.55-1.26-3.5-2-5.62-2a9 9 0 0 0-9 9a9 9 0 0 0 9 9c5 0 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61M11 14h2V8h-2m4-7H9v2h6z'/%3E%3C/svg%3E">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .title-font { font-family: 'Space Grotesk', sans-serif; }
+        .digital-font { font-family: 'Space Grotesk', monospace; letter-spacing: 4px; }
+        .timer-display { font-size: 4.5rem; line-height: 1; }
+        @media (max-width: 640px) { .timer-display { font-size: 3rem; } }
+
+        .tab-btn.active  { background-color: #27272a; }
+        .mode-btn.active { background-color: #27272a; }
+
+        /* Start-time panel */
+        .start-time-panel {
+            background-color: #18181b;
+            border: 1px solid #3f3f46;
+            border-radius: 1rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .start-time-panel label { font-size: 0.75rem; color: #a1a1aa; display: block; margin-bottom: 0.35rem; }
+        .start-time-panel input[type="datetime-local"] {
+            background-color: #27272a; border: 1px solid #52525b; border-radius: 0.75rem;
+            color: #fff; padding: 0.6rem 1rem; font-size: 0.95rem; width: 100%;
+            margin-bottom: 0.75rem; color-scheme: dark;
+        }
+        .toggle-row {
+            display: flex; align-items: center; gap: 0.6rem;
+            cursor: pointer; user-select: none; margin-bottom: 1rem;
+        }
+        .toggle-row input[type="checkbox"] { accent-color: #10b981; width: 16px; height: 16px; cursor: pointer; }
+        .toggle-row span { font-size: 0.875rem; color: #a1a1aa; }
+        .info-text { font-size: 0.75rem; color: #71717a; margin-top: 0.4rem; }
+
+        /* Lap items */
+        .lap-item {
+            display: flex; align-items: center; gap: 12px;
+            background: #27272a; border-radius: 1rem; padding: 10px 16px;
+        }
+        .lap-thumb {
+            width: 80px; height: 52px; border-radius: 8px; object-fit: cover;
+            border: 1px solid #3f3f46; cursor: pointer; flex-shrink: 0;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .lap-thumb:hover { transform: scale(1.06); border-color: #10b981; }
+        .lap-no-thumb {
+            width: 80px; height: 52px; border-radius: 8px; border: 1px dashed #3f3f46;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; cursor: pointer; background: #18181b; flex-direction: column; gap: 3px;
+        }
+        .lap-no-thumb i { color: #52525b; font-size: 0.9rem; }
+        .lap-no-thumb span { color: #3f3f46; font-size: 0.55rem; text-align: center; line-height: 1.2; }
+        .lap-no-thumb:hover { border-color: #71717a; }
+        .lap-no-thumb:hover i { color: #a1a1aa; }
+        .lap-meta { flex: 1; min-width: 0; }
+        .lap-number { font-size: 0.7rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; }
+        .lap-time-val { font-family: monospace; font-size: 1rem; color: #fff; }
+        .lap-ts { font-size: 0.68rem; color: #52525b; margin-top: 2px; }
+
+        /* Capture button */
+        #capture-btn {
+            display: flex; align-items: center; gap: 8px;
+            background: #18181b; border: 1px solid #3f3f46; border-radius: 1rem;
+            color: #a1a1aa; padding: 9px 16px; font-size: 0.8rem;
+            cursor: pointer; margin-bottom: 10px; width: 100%;
+            justify-content: center; transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        #capture-btn:hover { background: #27272a; color: #d4d4d8; }
+        #capture-btn.active { border-color: #10b981; color: #10b981; background: #052e16; }
+
+        .capture-dot {
+            width: 7px; height: 7px; border-radius: 50%; background: #10b981;
+            animation: blink 1.2s infinite; flex-shrink: 0;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+        /* Lightbox */
+        #lightbox {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+            z-index: 9999; align-items: center; justify-content: center;
+        }
+        #lightbox.open { display: flex; }
+        #lightbox-inner { position: relative; }
+        #lightbox img {
+            max-width: 90vw; max-height: 85vh; border-radius: 12px;
+            border: 1px solid #3f3f46; display: block;
+        }
+        #lightbox-close {
+            position: absolute; top: -14px; right: -14px; width: 30px; height: 30px;
+            border-radius: 50%; background: #27272a; border: 1px solid #3f3f46;
+            color: #fff; font-size: 1rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; line-height: 1;
+        }
+        #lightbox-close:hover { background: #3f3f46; }
+        #lightbox-dl {
+            display: block; text-align: center; margin-top: 10px;
+            color: #71717a; font-size: 0.8rem; text-decoration: none;
+        }
+        #lightbox-dl:hover { color: #a1a1aa; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen">
+
+    <!-- Lightbox -->
+    <div id="lightbox" onclick="closeLightbox()">
+        <div id="lightbox-inner" onclick="event.stopPropagation()">
+            <button id="lightbox-close" onclick="closeLightbox()" aria-label="Close">&times;</button>
+            <img id="lightbox-img" src="" alt="Lap screenshot">
+            <a id="lightbox-dl" href="#" download="lap-screenshot.jpg">
+                <i class="fas fa-download"></i> Download screenshot
+            </a>
+        </div>
+    </div>
+
+    <div class="max-w-2xl mx-auto p-6">
+        <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
+            <h1 class="title-font text-4xl font-semibold tracking-tight flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M0 0h24v24H0z" fill="none"/>
+                    <path fill="#10b981" d="M12 20a7 7 0 0 1-7-7a7 7 0 0 1 7-7a7 7 0 0 1 7 7a7 7 0 0 1-7 7m7.03-12.61l1.42-1.42c-.45-.51-.9-.97-1.41-1.41L17.62 6c-1.55-1.26-3.5-2-5.62-2a9 9 0 0 0-9 9a9 9 0 0 0 9 9c5 0 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61M11 14h2V8h-2m4-7H9v2h6z"/>
+                </svg>
+                Timer Pro
+            </h1>
+            <div class="flex gap-2">
+                <button onclick="switchTab(0)" id="tab-0"
+                    class="tab-btn active px-5 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-stopwatch"></i> Stopwatch
+                </button>
+                <button onclick="switchTab(1)" id="tab-1"
+                    class="tab-btn px-5 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-clock"></i> Countdown
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== STOPWATCH ==================== -->
+        <div id="stopwatch-section" class="tab-content">
+            <div class="bg-zinc-900 rounded-3xl p-10 shadow-2xl border border-zinc-800">
+
+                <!-- Start-from toggle -->
+                <label class="toggle-row">
+                    <input type="checkbox" id="use-start-time" onchange="toggleStartTimePanel()">
+                    <span>Start from a specific date &amp; time</span>
+                </label>
+
+                <!-- Start-from panel -->
+                <div id="start-time-panel" class="start-time-panel" style="display:none;">
+                    <label for="start-datetime">Start date &amp; time</label>
+                    <input type="datetime-local" id="start-datetime" step="1">
+                    <div class="flex gap-3">
+                        <button onclick="applyStartTime()"
+                            class="flex-1 bg-emerald-700 hover:bg-emerald-600 py-2 rounded-xl text-sm font-medium">
+                            Apply
+                        </button>
+                        <button onclick="clearStartTime()"
+                            class="flex-1 bg-zinc-700 hover:bg-zinc-600 py-2 rounded-xl text-sm font-medium">
+                            Clear
+                        </button>
+                    </div>
+                    <p id="start-info" class="info-text"></p>
+                </div>
+
+                <div id="stopwatch-display" class="digital-font timer-display text-center text-emerald-400 mb-10">
+                    00:00:00
+                </div>
+
+                <div class="flex gap-4 mb-4">
+                    <button onclick="toggleStopwatch()" id="stopwatch-btn"
+                        class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-5 rounded-2xl font-semibold text-lg flex items-center justify-center gap-3">
+                        <i class="fas fa-play"></i> START
+                    </button>
+                    <button onclick="resetStopwatch()"
+                        class="flex-1 bg-zinc-800 hover:bg-zinc-700 py-5 rounded-2xl font-semibold text-lg">
+                        RESET
+                    </button>
+                </div>
+
+                <!-- Screenshot capture toggle -->
+                <button id="capture-btn" onclick="toggleCapture()" title="Capture your screen on each lap">
+                    <i class="fas fa-camera"></i>
+                    <span id="capture-label">Enable lap screenshot capture</span>
+                </button>
+
+                <button onclick="recordLap()" id="lap-btn"
+                    class="w-full bg-zinc-800 hover:bg-zinc-700 py-3 rounded-2xl text-sm font-medium disabled:opacity-50"
+                    disabled>
+                    <i class="fas fa-flag"></i> RECORD LAP
+                </button>
+
+                <div id="laps-container" class="mt-8 max-h-96 overflow-y-auto space-y-3 pr-1">
+                    <!-- Laps added by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== COUNTDOWN ==================== -->
+        <div id="countdown-section" class="tab-content hidden">
+            <div class="bg-zinc-900 rounded-3xl p-8 shadow-2xl border border-zinc-800">
+                <div class="flex gap-3 mb-6">
+                    <button onclick="setMode(0)" id="mode-0"
+                        class="mode-btn active flex-1 py-3 rounded-2xl text-sm font-medium">Date &amp; Time</button>
+                    <button onclick="setMode(1)" id="mode-1"
+                        class="mode-btn flex-1 py-3 rounded-2xl text-sm font-medium">Duration</button>
+                </div>
+
+                <!-- Date & Time Mode -->
+                <div id="datetime-mode">
+                    <label class="block text-zinc-400 text-sm mb-2">Target Date &amp; Time</label>
+                    <input type="datetime-local" id="target-datetime"
+                        class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 text-lg"
+                        style="color-scheme:dark;">
+                    <button onclick="setTargetDate()"
+                        class="mt-4 w-full bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-medium">
+                        Set Target
+                    </button>
+                </div>
+
+                <!-- Duration Mode -->
+                <div id="duration-mode" class="hidden">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-zinc-400 text-xs mb-1">Hours</label>
+                            <input type="number" id="hours" value="0" min="0"
+                                class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-5 text-center text-2xl">
+                        </div>
+                        <div>
+                            <label class="block text-zinc-400 text-xs mb-1">Minutes</label>
+                            <input type="number" id="minutes" value="5" min="0" max="59"
+                                class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-5 text-center text-2xl">
+                        </div>
+                        <div>
+                            <label class="block text-zinc-400 text-xs mb-1">Seconds</label>
+                            <input type="number" id="seconds" value="0" min="0" max="59"
+                                class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-5 text-center text-2xl">
+                        </div>
+                    </div>
+                    <button onclick="startDurationCountdown()"
+                        class="mt-6 w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-semibold">
+                        Start Countdown
+                    </button>
+                </div>
+
+                <div id="countdown-display" class="digital-font timer-display text-center text-rose-400 my-10">
+                    00:00:00
+                </div>
+
+                <div class="flex gap-4">
+                    <button onclick="toggleCountdown()" id="countdown-btn"
+                        class="flex-1 bg-rose-600 hover:bg-rose-500 py-5 rounded-2xl font-semibold text-lg flex items-center justify-center gap-3">
+                        <i class="fas fa-play"></i> START
+                    </button>
+                    <button onclick="resetCountdown()"
+                        class="flex-1 bg-zinc-800 hover:bg-zinc-700 py-5 rounded-2xl font-semibold text-lg">
+                        RESET
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== TAB SWITCHING ====================
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tab === 0 ? 'stopwatch-section' : 'countdown-section').classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === tab));
+        }
+
+        // ==================== STOPWATCH ====================
+        let stopwatchTime = 0;
+        let stopwatchInterval = null;
+        let isStopwatchRunning = false;
+        let laps = []; // { ms, timestamp, screenshot: dataURL|null }
+        let customStartOffset = null;
+
+        // ---- Screen capture ----
+        let captureEnabled = false;
+        let captureStream = null;
+
+        async function toggleCapture() {
+            captureEnabled ? stopCapture() : await startCapture();
+        }
+
+        async function startCapture() {
+            try {
+                captureStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: 'always', frameRate: 5 },
+                    audio: false
+                });
+                captureStream.getVideoTracks()[0].addEventListener('ended', stopCapture);
+                captureEnabled = true;
+                const btn = document.getElementById('capture-btn');
+                btn.classList.add('active');
+                btn.innerHTML = `<span class="capture-dot"></span> <span>Lap screenshots active — click to stop</span>`;
+            } catch (e) {
+                captureEnabled = false;
+                captureStream = null;
+            }
+        }
+
+        function stopCapture() {
+            captureEnabled = false;
+            if (captureStream) { captureStream.getTracks().forEach(t => t.stop()); captureStream = null; }
+            const btn = document.getElementById('capture-btn');
+            btn.classList.remove('active');
+            btn.innerHTML = `<i class="fas fa-camera"></i> <span>Enable lap screenshot capture</span>`;
+        }
+
+        async function captureFrame() {
+            if (!captureEnabled || !captureStream) return null;
+            const track = captureStream.getVideoTracks()[0];
+            if (!track || track.readyState !== 'live') return null;
+
+            // Try ImageCapture API first
+            if (typeof ImageCapture !== 'undefined') {
+                try {
+                    const ic = new ImageCapture(track);
+                    const bmp = await ic.grabFrame();
+                    const c = document.createElement('canvas');
+                    c.width = bmp.width; c.height = bmp.height;
+                    c.getContext('2d').drawImage(bmp, 0, 0);
+                    return c.toDataURL('image/jpeg', 0.75);
+                } catch (_) {}
+            }
+
+            // Fallback: draw via hidden video element
+            try {
+                const video = document.createElement('video');
+                video.srcObject = new MediaStream([track]);
+                video.muted = true;
+                await video.play();
+                await new Promise(r => setTimeout(r, 200)); // let frame settle
+                const c = document.createElement('canvas');
+                c.width = video.videoWidth; c.height = video.videoHeight;
+                c.getContext('2d').drawImage(video, 0, 0);
+                video.pause(); video.srcObject = null;
+                return c.toDataURL('image/jpeg', 0.75);
+            } catch (_) { return null; }
+        }
+
+        // ---- Start-time helpers ----
+        function toLocalISO(d) {
+            const p = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+        }
+
+        function toggleStartTimePanel() {
+            const on = document.getElementById('use-start-time').checked;
+            document.getElementById('start-time-panel').style.display = on ? 'block' : 'none';
+            if (on && !document.getElementById('start-datetime').value)
+                document.getElementById('start-datetime').value = toLocalISO(new Date());
+            if (!on) clearStartTime();
+        }
+
+        function applyStartTime() {
+            const val = document.getElementById('start-datetime').value;
+            if (!val) { document.getElementById('start-info').textContent = 'Please pick a date and time.'; return; }
+            const picked = new Date(val).getTime(), now = Date.now();
+            if (picked > now) {
+                document.getElementById('start-info').textContent = 'Start time is in the future — timer counts from 00:00:00 when you press Start.';
+                customStartOffset = 0; stopwatchTime = 0;
+            } else {
+                customStartOffset = now - picked;
+                stopwatchTime = customStartOffset;
+                document.getElementById('start-info').textContent = 'Elapsed since ' + new Date(val).toLocaleString() + '.';
+            }
+            if (!isStopwatchRunning) updateStopwatchDisplay();
+        }
+
+        function clearStartTime() {
+            customStartOffset = null;
+            document.getElementById('start-info').textContent = '';
+            if (!isStopwatchRunning) { stopwatchTime = 0; updateStopwatchDisplay(); }
+        }
+
+        // ---- Core stopwatch ----
+        function updateStopwatchDisplay() {
+            const h = Math.floor(stopwatchTime / 3600000);
+            const m = Math.floor((stopwatchTime % 3600000) / 60000);
+            const s = Math.floor((stopwatchTime % 60000) / 1000);
+            document.getElementById('stopwatch-display').textContent =
+                `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        function toggleStopwatch() {
+            if (!isStopwatchRunning) {
+                const base = Date.now() - stopwatchTime;
+                stopwatchInterval = setInterval(() => { stopwatchTime = Date.now() - base; updateStopwatchDisplay(); }, 50);
+                isStopwatchRunning = true;
+                document.getElementById('stopwatch-btn').innerHTML = `<i class="fas fa-pause"></i> PAUSE`;
+                document.getElementById('lap-btn').disabled = false;
+            } else {
+                clearInterval(stopwatchInterval);
+                isStopwatchRunning = false;
+                document.getElementById('stopwatch-btn').innerHTML = `<i class="fas fa-play"></i> RESUME`;
+            }
+        }
+
+        function resetStopwatch() {
+            clearInterval(stopwatchInterval);
+            stopwatchTime = 0; isStopwatchRunning = false; customStartOffset = null; laps = [];
+            stopCapture();
+            updateStopwatchDisplay();
+            document.getElementById('stopwatch-btn').innerHTML = `<i class="fas fa-play"></i> START`;
+            document.getElementById('lap-btn').disabled = true;
+            document.getElementById('use-start-time').checked = false;
+            document.getElementById('start-time-panel').style.display = 'none';
+            document.getElementById('start-info').textContent = '';
+            renderLaps();
+        }
+
+        async function recordLap() {
+            if (!isStopwatchRunning) return;
+            const screenshot = await captureFrame();
+            laps.unshift({ ms: stopwatchTime, timestamp: new Date(), screenshot });
+            renderLaps();
+        }
+
+        function renderLaps() {
+            const container = document.getElementById('laps-container');
+            container.innerHTML = '';
+            if (!laps.length) {
+                container.innerHTML = `<p class="text-center text-zinc-500 py-8">Laps will appear here</p>`;
+                return;
+            }
+            laps.forEach((lap, i) => {
+                const lapNum = laps.length - i;
+                const div = document.createElement('div');
+                div.className = 'lap-item';
+
+                let thumbHTML;
+                if (lap.screenshot) {
+                    thumbHTML = `<img class="lap-thumb" src="${lap.screenshot}" alt="Lap ${lapNum} screenshot" title="Click to enlarge" onclick="openLightbox('${lap.screenshot}', ${lapNum})">`;
+                } else {
+                    thumbHTML = `<div class="lap-no-thumb" title="${captureEnabled ? 'Capture pending' : 'Enable capture for screenshots'}" onclick="promptCapture()">
+                        <i class="fas fa-camera-slash"></i>
+                        <span>no<br>capture</span>
+                    </div>`;
+                }
+
+                div.innerHTML = `
+                    ${thumbHTML}
+                    <div class="lap-meta">
+                        <div class="lap-number">Lap ${lapNum}</div>
+                        <div class="lap-time-val">${formatTime(lap.ms)}</div>
+                        <div class="lap-ts">${lap.timestamp.toLocaleTimeString()}</div>
+                    </div>
+                    ${lap.screenshot ? `<a href="${lap.screenshot}" download="lap-${lapNum}.jpg" title="Download" class="text-zinc-600 hover:text-zinc-300 ml-auto pl-2 flex-shrink-0"><i class="fas fa-download text-sm"></i></a>` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function formatTime(ms) {
+            const h = Math.floor(ms / 3600000);
+            const m = Math.floor((ms % 3600000) / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        // ---- Lightbox ----
+        function openLightbox(src, lapNum) {
+            document.getElementById('lightbox-img').src = src;
+            const dl = document.getElementById('lightbox-dl');
+            dl.href = src;
+            dl.download = `lap-${lapNum}.jpg`;
+            document.getElementById('lightbox').classList.add('open');
+        }
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('open');
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+        function promptCapture() {
+            if (!captureEnabled) {
+                if (confirm('Enable lap screenshot capture?')) startCapture();
+            }
+        }
+
+        // ==================== COUNTDOWN ====================
+        let countdownInterval = null;
+        let targetTimestamp = null;
+        let isCountdownRunning = false;
+
+        function setMode(mode) {
+            document.getElementById('datetime-mode').classList.toggle('hidden', mode === 1);
+            document.getElementById('duration-mode').classList.toggle('hidden', mode === 0);
+            document.querySelectorAll('.mode-btn').forEach((btn, i) => btn.classList.toggle('active', i === mode));
+        }
+
+        function setTargetDate() {
+            const input = document.getElementById('target-datetime').value;
+            if (!input) { alert('Please select a date and time'); return; }
+            targetTimestamp = new Date(input).getTime();
+            startCountdown();
+        }
+
+        function startDurationCountdown() {
+            const h = parseInt(document.getElementById('hours').value) || 0;
+            const m = parseInt(document.getElementById('minutes').value) || 0;
+            const s = parseInt(document.getElementById('seconds').value) || 0;
+            const totalMs = (h * 3600 + m * 60 + s) * 1000;
+            if (totalMs <= 0) { alert('Please enter a duration greater than 0'); return; }
+            targetTimestamp = Date.now() + totalMs;
+            startCountdown();
+        }
+
+        function startCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            isCountdownRunning = true;
+            document.getElementById('countdown-btn').innerHTML = `<i class="fas fa-pause"></i> PAUSE`;
+            countdownInterval = setInterval(updateCountdown, 100);
+            updateCountdown();
+        }
+
+        function updateCountdown() {
+            if (!targetTimestamp) return;
+            let remaining = targetTimestamp - Date.now();
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                document.getElementById('countdown-display').textContent = '00:00:00';
+                alert("⏰ Time's Up!");
+                resetCountdown(); return;
+            }
+            const h = Math.floor(remaining / 3600000);
+            const m = Math.floor((remaining % 3600000) / 60000);
+            const s = Math.floor((remaining % 60000) / 1000);
+            document.getElementById('countdown-display').textContent =
+                `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        function toggleCountdown() {
+            if (!targetTimestamp) { alert('Please set a target time first'); return; }
+            if (isCountdownRunning) {
+                clearInterval(countdownInterval);
+                isCountdownRunning = false;
+                document.getElementById('countdown-btn').innerHTML = `<i class="fas fa-play"></i> RESUME`;
+            } else { startCountdown(); }
+        }
+
+        function resetCountdown() {
+            clearInterval(countdownInterval);
+            targetTimestamp = null; isCountdownRunning = false;
+            document.getElementById('countdown-display').textContent = '00:00:00';
+            document.getElementById('countdown-btn').innerHTML = `<i class="fas fa-play"></i> START`;
+        }
+
+        // ==================== INIT ====================
+        window.onload = () => {
+            updateStopwatchDisplay();
+            renderLaps();
+            const def = new Date(Date.now() + 3600000);
+            document.getElementById('target-datetime').value = toLocalISO(def).slice(0, 16);
+        };
+    </script>
+</body>
+</html>
