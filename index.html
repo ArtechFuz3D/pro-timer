@@ -10,7 +10,7 @@
     <meta name="author" content="Timer Pro">
     <meta name="theme-color" content="#09090b">
 
-    <!-- Open Graph / Social Preview -->
+    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Timer Pro">
     <meta property="og:description" content="Precision stopwatch and countdown timer with lap screenshots.">
@@ -24,11 +24,13 @@
     <meta name="twitter:description" content="Precision stopwatch and countdown timer with lap screenshots.">
     <meta name="twitter:image" content="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='630' viewBox='0 0 1200 630'%3E%3Crect width='1200' height='630' fill='%2309090b'/%3E%3Ccircle cx='600' cy='280' r='160' stroke='%2310b981' stroke-width='12' fill='none'/%3E%3Cpath fill='%2310b981' d='M594 140h12v60h-12zm0 220h12v60h-12zm-80-80h-60v-12h60zm220 0h60v12h-60zM600 260l60 60-8 8-60-60z'/%3E%3Ctext x='600' y='510' font-family='monospace' font-size='48' fill='%2310b981' text-anchor='middle'%3ETimer Pro%3C/text%3E%3C/svg%3E">
 
-    <!-- Favicon (your SVG) -->
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1em' height='1em' viewBox='0 0 24 24'%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3Cpath fill='%2310b981' d='M12 20a7 7 0 0 1-7-7a7 7 0 0 1 7-7a7 7 0 0 1 7 7a7 7 0 0 1-7 7m7.03-12.61l1.42-1.42c-.45-.51-.9-.97-1.41-1.41L17.62 6c-1.55-1.26-3.5-2-5.62-2a9 9 0 0 0-9 9a9 9 0 0 0 9 9c5 0 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61M11 14h2V8h-2m4-7H9v2h6z'/%3E%3C/svg%3E">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <!-- html2canvas: renders the page's own DOM to a canvas, no permissions needed -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
@@ -75,15 +77,6 @@
             transition: transform 0.15s, border-color 0.15s;
         }
         .lap-thumb:hover { transform: scale(1.06); border-color: #10b981; }
-        .lap-no-thumb {
-            width: 80px; height: 52px; border-radius: 8px; border: 1px dashed #3f3f46;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; cursor: pointer; background: #18181b; flex-direction: column; gap: 3px;
-        }
-        .lap-no-thumb i { color: #52525b; font-size: 0.9rem; }
-        .lap-no-thumb span { color: #3f3f46; font-size: 0.55rem; text-align: center; line-height: 1.2; }
-        .lap-no-thumb:hover { border-color: #71717a; }
-        .lap-no-thumb:hover i { color: #a1a1aa; }
         .lap-meta { flex: 1; min-width: 0; }
         .lap-number { font-size: 0.7rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; }
         .lap-time-val { font-family: monospace; font-size: 1rem; color: #fff; }
@@ -100,11 +93,13 @@
         #capture-btn:hover { background: #27272a; color: #d4d4d8; }
         #capture-btn.active { border-color: #10b981; color: #10b981; background: #052e16; }
 
-        .capture-dot {
-            width: 7px; height: 7px; border-radius: 50%; background: #10b981;
-            animation: blink 1.2s infinite; flex-shrink: 0;
+        /* Capture flash overlay */
+        #capture-flash {
+            position: fixed; inset: 0; background: #fff;
+            opacity: 0; pointer-events: none; z-index: 9998;
+            transition: opacity 0.05s;
         }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+        #capture-flash.flash { opacity: 0.35; }
 
         /* Lightbox */
         #lightbox {
@@ -121,7 +116,7 @@
             position: absolute; top: -14px; right: -14px; width: 30px; height: 30px;
             border-radius: 50%; background: #27272a; border: 1px solid #3f3f46;
             color: #fff; font-size: 1rem; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
         }
         #lightbox-close:hover { background: #3f3f46; }
         #lightbox-dl {
@@ -132,6 +127,9 @@
     </style>
 </head>
 <body class="bg-zinc-950 text-white min-h-screen">
+
+    <!-- Flash effect on capture -->
+    <div id="capture-flash"></div>
 
     <!-- Lightbox -->
     <div id="lightbox" onclick="closeLightbox()">
@@ -167,7 +165,8 @@
 
         <!-- ==================== STOPWATCH ==================== -->
         <div id="stopwatch-section" class="tab-content">
-            <div class="bg-zinc-900 rounded-3xl p-10 shadow-2xl border border-zinc-800">
+            <!-- This card is what gets captured -->
+            <div id="stopwatch-card" class="bg-zinc-900 rounded-3xl p-10 shadow-2xl border border-zinc-800">
 
                 <!-- Start-from toggle -->
                 <label class="toggle-row">
@@ -207,10 +206,10 @@
                     </button>
                 </div>
 
-                <!-- Screenshot capture toggle -->
-                <button id="capture-btn" onclick="toggleCapture()" title="Capture your screen on each lap">
-                    <i class="fas fa-camera"></i>
-                    <span id="capture-label">Enable lap screenshot capture</span>
+                <!-- Capture toggle: on = screenshot attached to each lap automatically; off = no screenshot -->
+                <button id="capture-btn" onclick="toggleCapture()">
+                    <i class="fas fa-camera" id="capture-icon"></i>
+                    <span id="capture-label">Attach screenshot to each lap</span>
                 </button>
 
                 <button onclick="recordLap()" id="lap-btn"
@@ -235,7 +234,6 @@
                         class="mode-btn flex-1 py-3 rounded-2xl text-sm font-medium">Duration</button>
                 </div>
 
-                <!-- Date & Time Mode -->
                 <div id="datetime-mode">
                     <label class="block text-zinc-400 text-sm mb-2">Target Date &amp; Time</label>
                     <input type="datetime-local" id="target-datetime"
@@ -247,7 +245,6 @@
                     </button>
                 </div>
 
-                <!-- Duration Mode -->
                 <div id="duration-mode" class="hidden">
                     <div class="grid grid-cols-3 gap-4">
                         <div>
@@ -305,69 +302,43 @@
         let laps = []; // { ms, timestamp, screenshot: dataURL|null }
         let customStartOffset = null;
 
-        // ---- Screen capture ----
+        // ---- Screenshot capture (html2canvas — no permissions, renders this page's own DOM) ----
         let captureEnabled = false;
-        let captureStream = null;
 
-        async function toggleCapture() {
-            captureEnabled ? stopCapture() : await startCapture();
-        }
-
-        async function startCapture() {
-            try {
-                captureStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { cursor: 'always', frameRate: 5 },
-                    audio: false
-                });
-                captureStream.getVideoTracks()[0].addEventListener('ended', stopCapture);
-                captureEnabled = true;
-                const btn = document.getElementById('capture-btn');
-                btn.classList.add('active');
-                btn.innerHTML = `<span class="capture-dot"></span> <span>Lap screenshots active — click to stop</span>`;
-            } catch (e) {
-                captureEnabled = false;
-                captureStream = null;
-            }
-        }
-
-        function stopCapture() {
-            captureEnabled = false;
-            if (captureStream) { captureStream.getTracks().forEach(t => t.stop()); captureStream = null; }
+        function toggleCapture() {
+            captureEnabled = !captureEnabled;
             const btn = document.getElementById('capture-btn');
-            btn.classList.remove('active');
-            btn.innerHTML = `<i class="fas fa-camera"></i> <span>Enable lap screenshot capture</span>`;
+            if (captureEnabled) {
+                btn.classList.add('active');
+                document.getElementById('capture-label').textContent = 'Screenshot on lap: ON';
+                document.getElementById('capture-icon').className = 'fas fa-camera-rotate';
+            } else {
+                btn.classList.remove('active');
+                document.getElementById('capture-label').textContent = 'Attach screenshot to each lap';
+                document.getElementById('capture-icon').className = 'fas fa-camera';
+            }
         }
 
-        async function captureFrame() {
-            if (!captureEnabled || !captureStream) return null;
-            const track = captureStream.getVideoTracks()[0];
-            if (!track || track.readyState !== 'live') return null;
+        async function captureTimer() {
+            // Flash effect so user knows a capture happened
+            const flash = document.getElementById('capture-flash');
+            flash.classList.add('flash');
+            setTimeout(() => flash.classList.remove('flash'), 180);
 
-            // Try ImageCapture API first
-            if (typeof ImageCapture !== 'undefined') {
-                try {
-                    const ic = new ImageCapture(track);
-                    const bmp = await ic.grabFrame();
-                    const c = document.createElement('canvas');
-                    c.width = bmp.width; c.height = bmp.height;
-                    c.getContext('2d').drawImage(bmp, 0, 0);
-                    return c.toDataURL('image/jpeg', 0.75);
-                } catch (_) {}
-            }
-
-            // Fallback: draw via hidden video element
+            // Capture just the stopwatch card
+            const card = document.getElementById('stopwatch-card');
             try {
-                const video = document.createElement('video');
-                video.srcObject = new MediaStream([track]);
-                video.muted = true;
-                await video.play();
-                await new Promise(r => setTimeout(r, 200)); // let frame settle
-                const c = document.createElement('canvas');
-                c.width = video.videoWidth; c.height = video.videoHeight;
-                c.getContext('2d').drawImage(video, 0, 0);
-                video.pause(); video.srcObject = null;
-                return c.toDataURL('image/jpeg', 0.75);
-            } catch (_) { return null; }
+                const canvas = await html2canvas(card, {
+                    backgroundColor: '#18181b',
+                    scale: 1.5,           // sharper thumbnail
+                    useCORS: true,
+                    logging: false
+                });
+                return canvas.toDataURL('image/jpeg', 0.85);
+            } catch (e) {
+                console.warn('html2canvas failed:', e);
+                return null;
+            }
         }
 
         // ---- Start-time helpers ----
@@ -431,7 +402,6 @@
         function resetStopwatch() {
             clearInterval(stopwatchInterval);
             stopwatchTime = 0; isStopwatchRunning = false; customStartOffset = null; laps = [];
-            stopCapture();
             updateStopwatchDisplay();
             document.getElementById('stopwatch-btn').innerHTML = `<i class="fas fa-play"></i> START`;
             document.getElementById('lap-btn').disabled = true;
@@ -443,7 +413,8 @@
 
         async function recordLap() {
             if (!isStopwatchRunning) return;
-            const screenshot = await captureFrame();
+            // Grab screenshot before appending to laps list (so the new lap isn't visible in the shot)
+            const screenshot = captureEnabled ? await captureTimer() : null;
             laps.unshift({ ms: stopwatchTime, timestamp: new Date(), screenshot });
             renderLaps();
         }
@@ -460,15 +431,9 @@
                 const div = document.createElement('div');
                 div.className = 'lap-item';
 
-                let thumbHTML;
-                if (lap.screenshot) {
-                    thumbHTML = `<img class="lap-thumb" src="${lap.screenshot}" alt="Lap ${lapNum} screenshot" title="Click to enlarge" onclick="openLightbox('${lap.screenshot}', ${lapNum})">`;
-                } else {
-                    thumbHTML = `<div class="lap-no-thumb" title="${captureEnabled ? 'Capture pending' : 'Enable capture for screenshots'}" onclick="promptCapture()">
-                        <i class="fas fa-camera-slash"></i>
-                        <span>no<br>capture</span>
-                    </div>`;
-                }
+                const thumbHTML = lap.screenshot
+                    ? `<img class="lap-thumb" src="${lap.screenshot}" alt="Lap ${lapNum}" title="Click to enlarge" onclick="openLightbox('${lap.screenshot}', ${lapNum})">`
+                    : '';
 
                 div.innerHTML = `
                     ${thumbHTML}
@@ -494,25 +459,14 @@
         function openLightbox(src, lapNum) {
             document.getElementById('lightbox-img').src = src;
             const dl = document.getElementById('lightbox-dl');
-            dl.href = src;
-            dl.download = `lap-${lapNum}.jpg`;
+            dl.href = src; dl.download = `lap-${lapNum}.jpg`;
             document.getElementById('lightbox').classList.add('open');
         }
-        function closeLightbox() {
-            document.getElementById('lightbox').classList.remove('open');
-        }
+        function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
-        function promptCapture() {
-            if (!captureEnabled) {
-                if (confirm('Enable lap screenshot capture?')) startCapture();
-            }
-        }
-
         // ==================== COUNTDOWN ====================
-        let countdownInterval = null;
-        let targetTimestamp = null;
-        let isCountdownRunning = false;
+        let countdownInterval = null, targetTimestamp = null, isCountdownRunning = false;
 
         function setMode(mode) {
             document.getElementById('datetime-mode').classList.toggle('hidden', mode === 1);
@@ -523,8 +477,7 @@
         function setTargetDate() {
             const input = document.getElementById('target-datetime').value;
             if (!input) { alert('Please select a date and time'); return; }
-            targetTimestamp = new Date(input).getTime();
-            startCountdown();
+            targetTimestamp = new Date(input).getTime(); startCountdown();
         }
 
         function startDurationCountdown() {
@@ -533,16 +486,14 @@
             const s = parseInt(document.getElementById('seconds').value) || 0;
             const totalMs = (h * 3600 + m * 60 + s) * 1000;
             if (totalMs <= 0) { alert('Please enter a duration greater than 0'); return; }
-            targetTimestamp = Date.now() + totalMs;
-            startCountdown();
+            targetTimestamp = Date.now() + totalMs; startCountdown();
         }
 
         function startCountdown() {
             if (countdownInterval) clearInterval(countdownInterval);
             isCountdownRunning = true;
             document.getElementById('countdown-btn').innerHTML = `<i class="fas fa-pause"></i> PAUSE`;
-            countdownInterval = setInterval(updateCountdown, 100);
-            updateCountdown();
+            countdownInterval = setInterval(updateCountdown, 100); updateCountdown();
         }
 
         function updateCountdown() {
@@ -551,8 +502,7 @@
             if (remaining <= 0) {
                 clearInterval(countdownInterval);
                 document.getElementById('countdown-display').textContent = '00:00:00';
-                alert("⏰ Time's Up!");
-                resetCountdown(); return;
+                alert("⏰ Time's Up!"); resetCountdown(); return;
             }
             const h = Math.floor(remaining / 3600000);
             const m = Math.floor((remaining % 3600000) / 60000);
@@ -564,23 +514,20 @@
         function toggleCountdown() {
             if (!targetTimestamp) { alert('Please set a target time first'); return; }
             if (isCountdownRunning) {
-                clearInterval(countdownInterval);
-                isCountdownRunning = false;
+                clearInterval(countdownInterval); isCountdownRunning = false;
                 document.getElementById('countdown-btn').innerHTML = `<i class="fas fa-play"></i> RESUME`;
             } else { startCountdown(); }
         }
 
         function resetCountdown() {
-            clearInterval(countdownInterval);
-            targetTimestamp = null; isCountdownRunning = false;
+            clearInterval(countdownInterval); targetTimestamp = null; isCountdownRunning = false;
             document.getElementById('countdown-display').textContent = '00:00:00';
             document.getElementById('countdown-btn').innerHTML = `<i class="fas fa-play"></i> START`;
         }
 
         // ==================== INIT ====================
         window.onload = () => {
-            updateStopwatchDisplay();
-            renderLaps();
+            updateStopwatchDisplay(); renderLaps();
             const def = new Date(Date.now() + 3600000);
             document.getElementById('target-datetime').value = toLocalISO(def).slice(0, 16);
         };
